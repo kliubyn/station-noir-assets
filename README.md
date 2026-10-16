@@ -16,6 +16,10 @@ Static assets for stationnoir.com, served via jsDelivr.
 | `hero-1080.webm` | 1.8 MB | full-bleed spare |
 | `poster.jpg` / `poster.webp` | 100 / 43 KB | first-frame poster |
 
+| `underboss.mp4` | 0.9 MB | Terminals excerpt, Underboss (960w, **audio kept**, faststart) |
+| `underboss.webm` | 0.6 MB | VP9/Opus alternative |
+| `underboss-poster.webp` | 35 KB | poster |
+
 Source: "STATION NOIR - HERO (VID IV)" by Alex Sancho (VID III files retained).
 Current files are the FULL uncut clip at Alex's request. Only changes: audio
 stripped, scaled to 1400px for the 52vw column, faststart. No frames removed.
