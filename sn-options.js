@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { full:'Full image', split:'Split', off:'As built (broken)' };
+  var COLLECTIVE = { full:'Full image', split:'Split', framed:'Framed image', off:'As built' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -103,9 +103,20 @@
     var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
 
+    // The section's own image never downloads: it carries loading="lazy" on a
+    // box that an interaction should have grown from 0 and never did, because
+    // the duplicated element lost its binding. Chrome skips lazy images with
+    // no layout box, so it sat at 0x0 forever. Force it to load.
+    if (img) {
+      img.setAttribute('loading', 'eager');
+      img.removeAttribute('sizes');
+      if (!img.complete || !img.naturalWidth) img.src = img.getAttribute('src');
+    }
+
     var back = document.createElement('div');
     back.className = 'sn-cback';
-    back.innerHTML = (src ? '<img class="sn-cimg" src="' + src + '" aria-hidden="true">' : '') +
+    back.innerHTML = (src && coll !== 'framed'
+                        ? '<img class="sn-cimg" src="' + src + '" aria-hidden="true">' : '') +
                      '<div class="sn-cveil"></div>';
 
     var front = document.createElement('div');
@@ -135,7 +146,7 @@
       '#Collective{mix-blend-mode:normal !important;background:transparent !important}' +
       '#Collective [class*="overlay"]{background:transparent !important;mix-blend-mode:normal !important;visibility:hidden}' +
       '#Collective [class*="about-bottom"]{background:transparent !important}' +
-      '#Collective [class*="about-image-tilt"]{display:none !important}' +
+      (coll === 'framed' ? '' : '#Collective [class*="about-image-tilt"]{display:none !important}') +
 
       '.sn-cback{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;overflow:hidden;background:#0A0A0A}' +
       '.sn-cimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}' +
@@ -156,12 +167,29 @@
         '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.5) 60%,rgba(10,10,10,.35))}' +
         '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9)}';
     } else if (coll === 'split') {
+      // one picture across the whole section, washed from solid black on the
+      // reading side out to clear on the right. No second image, no hard edge.
       css +=
-        '.sn-cimg{left:auto;right:0;width:54%}' +
-        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 42%,rgba(10,10,10,.8) 52%,rgba(10,10,10,0) 70%)}' +
-        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9);max-width:32ch}' +
-        '@media(max-width:900px){.sn-cimg{width:100%}' +
-        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.93),rgba(10,10,10,.6))}' +
+        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 0%,rgba(10,10,10,.92) 26%,' +
+        'rgba(10,10,10,.55) 52%,rgba(10,10,10,0) 88%)}' +
+        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.92);max-width:34ch}' +
+        '@media(max-width:900px){' +
+        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.94),rgba(10,10,10,.65))}' +
+        '.sn-clede{max-width:none}}';
+    } else if (coll === 'framed') {
+      // the original composition: copy on the left, picture in its frame on
+      // the right, on a dark field rather than the white knock-out
+      css +=
+        '#Collective [class*="about-image-tilt"]{display:flex !important;' +
+        'visibility:visible !important;z-index:2}' +
+        '#Collective img[class*="about-tilt"]{width:100% !important;height:100% !important;' +
+        'object-fit:cover !important;opacity:1 !important}' +
+        '.sn-cback{background:#0A0A0A}' +
+        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 0%,rgba(10,10,10,.7) 40%,rgba(10,10,10,0) 60%)}' +
+        '.sn-cinner{max-width:50%}' +
+        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9);max-width:30ch}' +
+        '@media(max-width:900px){.sn-cinner{max-width:none}' +
+        '#Collective [class*="about-image-tilt"]{opacity:.35}' +
         '.sn-clede{max-width:none}}';
     }
 
