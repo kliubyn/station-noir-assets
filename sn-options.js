@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { full:'Full image', split:'Split', cutout:'Cut-out title', off:'As built (broken)' };
+  var COLLECTIVE = { full:'Full image', split:'Split', off:'As built (broken)' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -151,15 +151,7 @@
       'line-height:1.55;margin:clamp(16px,1.6vw,28px) 0 0;max-width:46ch}' +
       '@media(max-width:767px){.sn-cinner{padding:0 24px}.sn-clede{max-width:none}}';
 
-    if (coll === 'cutout') {
-      // the knock-out survives, but only on the headline. Body copy stays solid.
-      css +=
-        '.sn-cveil{background:linear-gradient(to bottom,rgba(10,10,10,.15),rgba(10,10,10,.5))}' +
-        '.sn-chead{color:transparent;background-image:url(' + src + ');' +
-        'background-size:cover;background-position:center;-webkit-background-clip:text;' +
-        'background-clip:text;filter:contrast(1.25) brightness(1.2)}' +
-        '.sn-clede{color:#fff}';
-    } else if (coll === 'full') {
+    if (coll === 'full') {
       css +=
         '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.5) 60%,rgba(10,10,10,.35))}' +
         '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9)}';
