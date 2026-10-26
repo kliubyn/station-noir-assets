@@ -152,6 +152,10 @@
           '#Collective{mix-blend-mode:normal !important}' +
           '#Collective .overlay{background:transparent !important;' +
           'mix-blend-mode:normal !important}' +
+          // .about-bottom is a solid white panel over the lower two thirds of
+          // the section, which hid the picture everywhere except the text band
+          '#Collective .about-bottom{background:transparent !important}' +
+          '#Collective .about-image-tilt-wrapper{display:none !important}' +
           '#Collective .cut-out-h3,#Collective .sn-lede2{color:#fff !important}' +
           '#Collective .title-section{color:#FF2A18 !important}' +
           '.sn-collveil{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;' +
