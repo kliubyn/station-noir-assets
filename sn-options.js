@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black' },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { 0:'Current', 1:'Image behind', 2:'Image behind + reveal' };
+  var COLLECTIVE = { 0:'Current', 1:'Cut-out', 2:'Image behind', 3:'Image behind + reveal' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -93,7 +93,7 @@
       'max-width:52ch;margin:clamp(14px,1.6vw,26px) 0 0;font-weight:500}' +
       '#Collective .cut-out-h3{font-size:clamp(44px,7vw,120px);line-height:.95}';
 
-    if (coll === '1' || coll === '2') {
+    if (coll === '1' || coll === '2' || coll === '3') {
       var host = sec.parentElement;
       if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
       if (img && host && !host.querySelector('.sn-bgimg')) {
@@ -106,18 +106,32 @@
         // The section's nearest positioned ancestor is the whole landing page,
         // so 100%/100% would stretch the image down the entire document.
         // Measure the section and pin the image to exactly its box instead.
-        var bleed = (coll === '2') ? 0.14 : 0;
+        var bleed = (coll === '3') ? 0.14 : 0;
         function place() {
           var h = sec.offsetHeight;
           clone.style.top = Math.round(sec.offsetTop - h * bleed) + 'px';
           clone.style.height = Math.round(h * (1 + bleed * 2)) + 'px';
         }
+        var veil = null;
+        if (coll === '2' || coll === '3') {
+          veil = document.createElement('div');
+          veil.className = 'sn-collveil';
+          host.insertBefore(veil, clone.nextSibling);
+        }
+        var place0 = place;
+        place = function () {
+          place0();
+          if (veil) {
+            veil.style.top = Math.round(sec.offsetTop) + 'px';
+            veil.style.height = Math.round(sec.offsetHeight) + 'px';
+          }
+        };
         place();
         addEventListener('resize', place);
         if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
         setTimeout(place, 1200);          // after Webflow's own load animations settle
 
-        if (coll === '2') {
+        if (coll === '3') {
           addEventListener('scroll', function () {
             var r = sec.getBoundingClientRect();
             var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
@@ -129,6 +143,20 @@
         '.sn-bgimg{position:absolute;left:0;width:100%;' +
         'object-fit:cover;z-index:0;pointer-events:none}' +
         '#Collective{z-index:3}';
+
+      if (coll === '2' || coll === '3') {
+        // Option 1 keeps the knock-out, where only the letters show picture.
+        // Alex asked to actually see the image, so here the screen blend and
+        // the white overlay come off and the copy flips to white over a veil.
+        css +=
+          '#Collective{mix-blend-mode:normal !important}' +
+          '#Collective .overlay{background:transparent !important;' +
+          'mix-blend-mode:normal !important}' +
+          '#Collective .cut-out-h3,#Collective .sn-lede2{color:#fff !important}' +
+          '#Collective .title-section{color:#FF2A18 !important}' +
+          '.sn-collveil{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;' +
+          'background:linear-gradient(to right,rgba(10,10,10,.9),rgba(10,10,10,.6) 55%,rgba(10,10,10,.3))}';
+      }
     }
 
     var st = document.createElement('style');
