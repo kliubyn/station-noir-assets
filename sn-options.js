@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { off:'Current', behind:'Image behind', reveal:'Image behind + reveal' };
+  var COLLECTIVE = { off:'As built', fix:'Fixed cut-out', full:'Full image', split:'Split' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -83,80 +83,93 @@
   }
 
   /* ---------------- collective ---------------- */
-  // Christina rebuilt this section, so the classes all carry a -copy suffix
-  // now (cut-out-h3-copy, about-bottom-copy, about-tilt-copy, overlay _1).
-  // Selectors below match either spelling so this keeps working if it is
-  // rebuilt again. The headline/paragraph split is already done in Webflow,
-  // so nothing here rewrites copy.
+  // The section is mix-blend-mode:screen over a white overlay, so dark text
+  // punches a hole and reveals whatever is painted BEHIND the section.
+  // Its own backing image (img.about-tilt-copy) currently measures 0x0, so
+  // the hole was revealing a neighbouring section instead, which is why the
+  // body copy looked sliced off partway across. Every option below supplies
+  // its own backing layer so the hole always reveals something deliberate.
   function applyCollective() {
     if (coll === 'off') return;
     var sec = document.getElementById('Collective');
     if (!sec) return;
-
-    var head = sec.querySelector('[class*="cut-out-h3"]') ||
-               sec.querySelector('h1,h2,h3,h4,h5,h6');
-    var lede = sec.querySelector('[class*="about-b2"]') ||
-               sec.querySelector('[class*="body-text"]');
+    var head = sec.querySelector('[class*="cut-out-h3"]');
+    var lede = sec.querySelector('[class*="about-b2"]') || sec.querySelector('[class*="body-text"]');
     var img  = sec.querySelector('img[class*="about-tilt"]') || sec.querySelector('img');
-    var bottom = sec.querySelector('[class*="about-bottom"]');
     var host = sec.parentElement;
-    if (!img || !host) return;
+    if (!host) return;
+    var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
+    if (!src) return;
 
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
 
-    if (!host.querySelector('.sn-bgimg')) {
-      var src = img.currentSrc || img.getAttribute('src') || '';
-      var clone = document.createElement('img');
-      clone.className = 'sn-bgimg';
-      clone.src = src;
-      var ss = img.getAttribute('srcset');
-      if (ss) clone.setAttribute('srcset', ss);
-      clone.setAttribute('aria-hidden', 'true');
-      host.insertBefore(clone, host.firstChild);
+    var back = document.createElement('div');
+    back.className = 'sn-cback';
+    back.innerHTML = '<img class="sn-cimg" src="' + src + '" aria-hidden="true">' +
+                     '<div class="sn-cveil"></div>' +
+                     '<div class="sn-cpanel"></div>';
+    host.insertBefore(back, host.firstChild);
+    var panel = back.querySelector('.sn-cpanel');
 
-      var veil = document.createElement('div');
-      veil.className = 'sn-collveil';
-      host.insertBefore(veil, clone.nextSibling);
-
-      // the section is not the host's only child, so pin both layers to its box
-      var bleed = (coll === 'reveal') ? 0.14 : 0;
-      function place() {
-        var h = sec.offsetHeight, t = sec.offsetTop;
-        clone.style.top = Math.round(t - h * bleed) + 'px';
-        clone.style.height = Math.round(h * (1 + bleed * 2)) + 'px';
-        veil.style.top = Math.round(t) + 'px';
-        veil.style.height = Math.round(h) + 'px';
-      }
-      place();
-      addEventListener('resize', place);
-      if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
-      setTimeout(place, 1200);
-
-      if (coll === 'reveal') {
-        addEventListener('scroll', function () {
-          var r = sec.getBoundingClientRect();
-          var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
-          clone.style.transform = 'translateY(' + (t * -7) + '%)';
-        }, { passive: true });
+    function place() {
+      back.style.top = Math.round(sec.offsetTop) + 'px';
+      back.style.height = Math.round(sec.offsetHeight) + 'px';
+      if (coll === 'fix' && lede) {
+        // a flat dark plate behind the body copy only, so the knock-out there
+        // resolves to clean dark text instead of a slice of another section
+        var sr = sec.getBoundingClientRect(), lr = lede.getBoundingClientRect();
+        panel.style.top = Math.round(lr.top - sr.top) - 24 + 'px';
+        panel.style.height = Math.round(lr.height) + 48 + 'px';
+        panel.style.left = '0px';
+        panel.style.width = '100%';
       }
     }
+    place();
+    addEventListener('resize', place);
+    if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
+    setTimeout(place, 1200);
 
     var css =
-      '.sn-bgimg{position:absolute;left:0;width:100%;object-fit:cover;' +
-      'z-index:0;pointer-events:none;display:block !important}' +
-      '.sn-collveil{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;' +
-      'background:linear-gradient(to right,rgba(10,10,10,.92),rgba(10,10,10,.62) 58%,rgba(10,10,10,.32))}' +
-      '#Collective{z-index:3;mix-blend-mode:normal !important}' +
-      // the white overlay and the white lower panel both hid the picture
-      '#Collective [class*="overlay"]{background:transparent !important;' +
-      'mix-blend-mode:normal !important}' +
-      '#Collective [class*="about-bottom"]{background:transparent !important}' +
-      '#Collective [class*="about-image-tilt"]{display:none !important}';
+      '.sn-cback{position:absolute;left:0;width:100%;z-index:0;pointer-events:none;overflow:hidden}' +
+      '.sn-cimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}' +
+      '.sn-cveil{position:absolute;inset:0}' +
+      '.sn-cpanel{position:absolute;display:none}' +
+      '#Collective{z-index:3}';
 
-    if (head) css += '#Collective [class*="cut-out-h3"]{color:#fff !important}';
-    if (lede) css += '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
-                     '{color:rgba(255,255,255,.88) !important}';
-    css += '#Collective .title-section{color:#FF2A18 !important}';
+    if (coll === 'fix') {
+      // keep the knock-out headline, make the body copy solid and readable
+      css +=
+        '.sn-cveil{background:linear-gradient(to bottom,rgba(10,10,10,.25),rgba(10,10,10,.55))}' +
+        '.sn-cpanel{display:block;background:#0A0A0A}' +
+        '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
+        '{color:#0A0A0A !important;max-width:46ch}';
+    }
+
+    if (coll === 'full' || coll === 'split') {
+      // blend off, picture visible, copy set in white over a veil
+      css +=
+        '#Collective{mix-blend-mode:normal !important}' +
+        '#Collective [class*="overlay"]{background:transparent !important;mix-blend-mode:normal !important}' +
+        '#Collective [class*="about-bottom"]{background:transparent !important}' +
+        '#Collective [class*="about-image-tilt"]{display:none !important}' +
+        '#Collective [class*="cut-out-h3"]{color:#fff !important}' +
+        '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
+        '{color:rgba(255,255,255,.9) !important;max-width:46ch}' +
+        '#Collective .title-section{color:#FF2A18 !important}' +
+        // the copy sat in the top third of a 900px section, leaving dead space
+        '#Collective [class*="overlay"]{display:flex;flex-direction:column;justify-content:center}';
+      if (coll === 'full') {
+        css += '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.55) 60%,rgba(10,10,10,.4))}';
+      } else {
+        // picture on the right, copy on a solid field to the left
+        css +=
+          '.sn-cimg{left:auto;right:0;width:52%}' +
+          '.sn-cveil{background:linear-gradient(to right,#0A0A0A 44%,rgba(10,10,10,.75) 52%,rgba(10,10,10,0) 68%)}' +
+          '#Collective [class*="about-b2"],#Collective [class*="body-text"]{max-width:34ch}' +
+          '@media (max-width:767px){.sn-cimg{width:100%;right:0}' +
+          '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.6))}}';
+      }
+    }
 
     var st = document.createElement('style');
     st.textContent = css;
