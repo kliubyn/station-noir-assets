@@ -102,9 +102,22 @@
         clone.removeAttribute('style');
         img.style.visibility = 'hidden';
         host.insertBefore(clone, host.firstChild);
+
+        // The section's nearest positioned ancestor is the whole landing page,
+        // so 100%/100% would stretch the image down the entire document.
+        // Measure the section and pin the image to exactly its box instead.
+        var bleed = (coll === '2') ? 0.14 : 0;
+        function place() {
+          var h = sec.offsetHeight;
+          clone.style.top = Math.round(sec.offsetTop - h * bleed) + 'px';
+          clone.style.height = Math.round(h * (1 + bleed * 2)) + 'px';
+        }
+        place();
+        addEventListener('resize', place);
+        if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
+        setTimeout(place, 1200);          // after Webflow's own load animations settle
+
         if (coll === '2') {
-          clone.style.height = '128%';
-          clone.style.top = '-14%';
           addEventListener('scroll', function () {
             var r = sec.getBoundingClientRect();
             var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
@@ -113,7 +126,7 @@
         }
       }
       css +=
-        '.sn-bgimg{position:absolute;left:0;top:0;width:100%;height:100%;' +
+        '.sn-bgimg{position:absolute;left:0;width:100%;' +
         'object-fit:cover;z-index:0;pointer-events:none}' +
         '#Collective{z-index:3}';
     }
