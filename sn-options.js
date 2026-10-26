@@ -127,9 +127,12 @@
     // !important, so this is what actually takes the frame full bleed.
     var css =
       '.hero-image-block{width:100vw !important;height:100vh !important;' +
-      'top:0 !important;left:0 !important}' +
+      'top:0 !important;left:0 !important;z-index:0 !important}' +
       '.hero-bg-video{width:100vw !important;height:100vh !important;' +
-      'left:0 !important;object-fit:cover !important}';
+      'left:0 !important;object-fit:cover !important}' +
+      // the frame normally sits at z-index 1 and the copy at 0, which is fine
+      // while the frame is inset. Full bleed buries the copy, so flip them.
+      '.hero{position:relative !important;z-index:2 !important}';
     if (hero === 'scrim') {
       css +=
         '.hero-section::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;' +
@@ -201,6 +204,14 @@
     nav.appendChild(x);
 
     document.body.appendChild(nav);
+    // land on the visible state even if the browser never ticks the animation
+    setTimeout(function () {
+      if (getComputedStyle(nav).opacity !== '1') {
+        nav.style.animation = 'none';
+        nav.style.opacity = '1';
+        nav.style.transform = 'translateX(-50%)';
+      }
+    }, 1400);
   }
 
   applyHero();                       // before paint where possible
