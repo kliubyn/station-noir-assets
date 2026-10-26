@@ -180,13 +180,16 @@
       // the original composition: copy on the left, picture in its frame on
       // the right, on a dark field rather than the white knock-out
       css +=
+        // the frame sits hard left by default and the copy landed on top of
+        // it, so push it to the right half and keep the reading side clear
         '#Collective [class*="about-image-tilt"]{display:flex !important;' +
-        'visibility:visible !important;z-index:2}' +
+        'visibility:visible !important;z-index:2;left:auto !important;right:0 !important;' +
+        'max-width:52% !important;width:52% !important}' +
         '#Collective img[class*="about-tilt"]{width:100% !important;height:100% !important;' +
         'object-fit:cover !important;opacity:1 !important}' +
         '.sn-cback{background:#0A0A0A}' +
-        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 0%,rgba(10,10,10,.7) 40%,rgba(10,10,10,0) 60%)}' +
-        '.sn-cinner{max-width:50%}' +
+        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 0%,#0A0A0A 44%,rgba(10,10,10,.55) 54%,rgba(10,10,10,0) 72%);z-index:3}' +
+        '.sn-cinner{max-width:48%}' +
         '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9);max-width:30ch}' +
         '@media(max-width:900px){.sn-cinner{max-width:none}' +
         '#Collective [class*="about-image-tilt"]{opacity:.35}' +
