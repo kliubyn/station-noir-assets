@@ -60,6 +60,13 @@
   }
 
   /* ---------------- collective ---------------- */
+  // How this section actually works: section.about-section-copy is
+  // mix-blend-mode:screen over a white div.overlay, and the heading is near
+  // black. Screen turns black transparent and keeps white white, so the dark
+  // letters knock a hole in the white and reveal whatever sits BEHIND the
+  // section. Two consequences drive everything below:
+  //   1. text must stay dark, white text disappears into the overlay
+  //   2. the image must live OUTSIDE the section, or it gets screened too
   function applyCollective() {
     if (coll === '0') return;
     var sec = document.getElementById('Collective');
@@ -68,10 +75,11 @@
     var img = sec.querySelector('img');
     if (!head) return;
 
-    // The restructure Alex approved on the call: short bold headline, body as
-    // a paragraph. Kept out of the heading so Google is not fed a 20-word H6.
-    var body = head.textContent.trim();
+    var ink = getComputedStyle(head).color || '#0A0A0A';
+
+    // the restructure Alex approved: short bold headline, body as a paragraph
     if (!sec.querySelector('.sn-lede2')) {
+      var body = head.textContent.trim();
       head.textContent = 'Who we are:';
       var p = document.createElement('p');
       p.className = 'sn-lede2';
@@ -79,42 +87,38 @@
       head.parentElement.insertBefore(p, head.nextSibling);
     }
 
-    var st = document.createElement('style');
     var css =
       '#Collective .sn-lede2{font-family:"DM Sans",Arial,sans-serif;' +
-      'font-size:clamp(16px,1.5vw,22px);line-height:1.5;color:#fff;max-width:52ch;' +
-      'margin:clamp(14px,1.6vw,26px) 0 0}' +
+      'font-size:clamp(16px,1.45vw,21px);line-height:1.5;color:' + ink + ';' +
+      'max-width:52ch;margin:clamp(14px,1.6vw,26px) 0 0;font-weight:500}' +
       '#Collective .cut-out-h3{font-size:clamp(44px,7vw,120px);line-height:.95}';
 
     if (coll === '1' || coll === '2') {
-      css +=
-        '#Collective{position:relative;overflow:hidden}' +
-        '#Collective .sn-bgimg{position:absolute;inset:0;width:100%;height:100%;' +
-        'object-fit:cover;z-index:0;pointer-events:none}' +
-        '#Collective .sn-bgveil{position:absolute;inset:0;z-index:1;pointer-events:none;' +
-        'background:linear-gradient(to top,rgba(10,10,10,.88),rgba(10,10,10,.45) 55%,rgba(10,10,10,.25))}' +
-        '#Collective .w-container,#Collective .about-wrapper,#Collective .content-wrap{position:relative;z-index:2}';
-      if (img) {
+      var host = sec.parentElement;
+      if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      if (img && host && !host.querySelector('.sn-bgimg')) {
         var clone = img.cloneNode(true);
         clone.className = 'sn-bgimg';
         clone.removeAttribute('style');
-        img.style.display = 'none';
-        sec.insertBefore(clone, sec.firstChild);
-        var veil = document.createElement('div');
-        veil.className = 'sn-bgveil';
-        sec.insertBefore(veil, clone.nextSibling);
+        img.style.visibility = 'hidden';
+        host.insertBefore(clone, host.firstChild);
         if (coll === '2') {
-          // let more of the picture show as you pass it
-          clone.style.height = '130%';
-          clone.style.top = '-15%';
+          clone.style.height = '128%';
+          clone.style.top = '-14%';
           addEventListener('scroll', function () {
             var r = sec.getBoundingClientRect();
-            var p = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
-            clone.style.transform = 'translateY(' + (p * -8) + '%)';
+            var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
+            clone.style.transform = 'translateY(' + (t * -7) + '%)';
           }, { passive: true });
         }
       }
+      css +=
+        '.sn-bgimg{position:absolute;left:0;top:0;width:100%;height:100%;' +
+        'object-fit:cover;z-index:0;pointer-events:none}' +
+        '#Collective{z-index:3}';
     }
+
+    var st = document.createElement('style');
     st.textContent = css;
     document.head.appendChild(st);
   }
