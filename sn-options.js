@@ -6,7 +6,7 @@
     current: { label: 'Agdasima',     stack: null },
     anton:   { label: 'Anton',        stack: "'Anton', 'Arial Narrow', sans-serif",        g: 'Anton' },
     bebas:   { label: 'Bebas Neue',   stack: "'Bebas Neue', 'Arial Narrow', sans-serif",   g: 'Bebas+Neue' },
-    archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black' },
+    archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
   var COLLECTIVE = { 0:'Current', 1:'Cut-out', 2:'Image behind', 3:'Image behind + reveal' };
@@ -47,7 +47,30 @@
         try { ff = getComputedStyle(e).fontFamily || ''; } catch (x) { continue; }
         if (ff.indexOf('Agdasima') > -1) e.classList.add('sn-fswap');
       }
+      if (f.scale) rescale();
     }
+
+    // Archivo Black is far wider than Agdasima, so at the same point size the
+    // wordmark wraps and the subtitle runs off the page. Scale it down.
+    // Sizes here are mostly vw-based, so clear the override, re-read the real
+    // size, then reapply. Debounced, and redone on resize so it stays fluid.
+    var rsTimer = null;
+    function rescale() {
+      var els = document.querySelectorAll('.sn-fswap');
+      for (var i = 0; i < els.length; i++) els[i].style.fontSize = '';
+      var sizes = [];
+      for (var j = 0; j < els.length; j++) sizes.push(parseFloat(getComputedStyle(els[j]).fontSize) || 0);
+      for (var k = 0; k < els.length; k++) {
+        if (sizes[k]) els[k].style.fontSize = (sizes[k] * f.scale).toFixed(2) + 'px';
+      }
+    }
+    if (f.scale) {
+      addEventListener('resize', function () {
+        clearTimeout(rsTimer);
+        rsTimer = setTimeout(rescale, 150);
+      });
+    }
+
     tag();
     new MutationObserver(function (ms) {
       ms.forEach(function (m) {
