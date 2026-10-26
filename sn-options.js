@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { full:'Full image', split:'Split', framed:'Framed image', off:'As built' };
+  var COLLECTIVE = { full:'Full image', framed:'Framed image', off:'As built' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -148,7 +148,7 @@
       '#Collective [class*="about-bottom"]{background:transparent !important}' +
       (coll === 'framed' ? '' : '#Collective [class*="about-image-tilt"]{display:none !important}') +
 
-      '.sn-cback{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;overflow:hidden;background:#0A0A0A}' +
+      '.sn-cback{position:absolute;left:0;width:100%;z-index:2;pointer-events:none;overflow:hidden;background:#0A0A0A}' +
       '.sn-cimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}' +
       '.sn-cveil{position:absolute;inset:0}' +
       '.sn-cfront{position:absolute;left:0;width:100%;z-index:5;pointer-events:none;' +
@@ -163,10 +163,16 @@
       '@media(max-width:767px){.sn-cinner{padding:0 24px}.sn-clede{max-width:none}}';
 
     if (coll === 'full') {
+      // washed from solid black on the reading side out to clear, which suits
+      // left-aligned copy better than darkening the bottom edge did
       css +=
-        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.5) 60%,rgba(10,10,10,.35))}' +
-        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9)}';
-    } else if (coll === 'split') {
+        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 0%,rgba(10,10,10,.92) 26%,' +
+        'rgba(10,10,10,.55) 52%,rgba(10,10,10,0) 88%)}' +
+        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.92);max-width:34ch}' +
+        '@media(max-width:900px){' +
+        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.94),rgba(10,10,10,.65))}' +
+        '.sn-clede{max-width:none}}';
+    } else if (coll === '__removed_split') {
       // one picture across the whole section, washed from solid black on the
       // reading side out to clear on the right. No second image, no hard edge.
       css +=
