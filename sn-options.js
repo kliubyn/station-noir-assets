@@ -9,14 +9,15 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { off:'As built', cutout:'Cut-out title', full:'Full image', split:'Split' };
+  var COLLECTIVE = { full:'Full image', split:'Split', cutout:'Cut-out title', off:'As built (broken)' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
   try { new URLSearchParams(location.search).forEach(function (v, k) { P[k] = v; }); } catch (e) {}
 
   var font = FONTS[P.font] ? P.font : 'current';
-  var coll = COLLECTIVE[P.collective] ? P.collective : 'off';
+  var DEFAULT_COLLECTIVE = 'full';   // what a normal visitor gets
+  var coll = COLLECTIVE[P.collective] ? P.collective : DEFAULT_COLLECTIVE;
   var hero = HERO[P.hero] ? P.hero : 'off';
   var showRail = ('opts' in P) || ('font' in P) || ('collective' in P) || ('hero' in P);
 
@@ -275,7 +276,7 @@
   applyHero();                       // before paint where possible
   ready(function () {
     applyFont();
-    applyCollective();
+    applyCollective();               // runs for every visitor, not just ?opts=1
     if (showRail) buildRail();
   });
 })();
