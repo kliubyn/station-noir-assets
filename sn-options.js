@@ -9,7 +9,7 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { off:'As built', fix:'Fixed cut-out', full:'Full image', split:'Split' };
+  var COLLECTIVE = { off:'As built', cutout:'Cut-out title', full:'Full image', split:'Split' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
@@ -83,46 +83,46 @@
   }
 
   /* ---------------- collective ---------------- */
-  // The section is mix-blend-mode:screen over a white overlay, so dark text
-  // punches a hole and reveals whatever is painted BEHIND the section.
-  // Its own backing image (img.about-tilt-copy) currently measures 0x0, so
-  // the hole was revealing a neighbouring section instead, which is why the
-  // body copy looked sliced off partway across. Every option below supplies
-  // its own backing layer so the hole always reveals something deliberate.
+  // PROVEN on the live page: the section is mix-blend-mode:screen, and a
+  // child cannot opt out of an ancestor's blend group. A probe placed inside
+  // the section rendered washed out; the same probe in a layer outside it
+  // rendered solid black. So any copy that must stay crisp has to live in a
+  // layer OUTSIDE the section. That is what every option below does: a
+  // backing layer behind for the picture, a front layer above for the words.
   function applyCollective() {
     if (coll === 'off') return;
     var sec = document.getElementById('Collective');
     if (!sec) return;
+    var eyebrow = sec.querySelector('.title-section');
     var head = sec.querySelector('[class*="cut-out-h3"]');
     var lede = sec.querySelector('[class*="about-b2"]') || sec.querySelector('[class*="body-text"]');
     var img  = sec.querySelector('img[class*="about-tilt"]') || sec.querySelector('img');
     var host = sec.parentElement;
-    if (!host) return;
+    if (!host || !head || !lede) return;
     var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
-    if (!src) return;
-
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
 
     var back = document.createElement('div');
     back.className = 'sn-cback';
-    back.innerHTML = '<img class="sn-cimg" src="' + src + '" aria-hidden="true">' +
-                     '<div class="sn-cveil"></div>' +
-                     '<div class="sn-cpanel"></div>';
+    back.innerHTML = (src ? '<img class="sn-cimg" src="' + src + '" aria-hidden="true">' : '') +
+                     '<div class="sn-cveil"></div>';
+
+    var front = document.createElement('div');
+    front.className = 'sn-cfront';
+    front.innerHTML =
+      '<div class="sn-cinner">' +
+        '<p class="sn-ceyebrow">' + (eyebrow ? eyebrow.textContent : 'The Collective') + '</p>' +
+        '<h2 class="sn-chead">' + head.textContent + '</h2>' +
+        '<p class="sn-clede">' + lede.textContent + '</p>' +
+      '</div>';
+
     host.insertBefore(back, host.firstChild);
-    var panel = back.querySelector('.sn-cpanel');
+    host.appendChild(front);
 
     function place() {
-      back.style.top = Math.round(sec.offsetTop) + 'px';
-      back.style.height = Math.round(sec.offsetHeight) + 'px';
-      if (coll === 'fix' && lede) {
-        // a flat dark plate behind the body copy only, so the knock-out there
-        // resolves to clean dark text instead of a slice of another section
-        var sr = sec.getBoundingClientRect(), lr = lede.getBoundingClientRect();
-        panel.style.top = Math.round(lr.top - sr.top) - 24 + 'px';
-        panel.style.height = Math.round(lr.height) + 48 + 'px';
-        panel.style.left = '0px';
-        panel.style.width = '100%';
-      }
+      var t = Math.round(sec.offsetTop), h = Math.round(sec.offsetHeight);
+      back.style.top = t + 'px';  back.style.height = h + 'px';
+      front.style.top = t + 'px'; front.style.height = h + 'px';
     }
     place();
     addEventListener('resize', place);
@@ -130,45 +130,46 @@
     setTimeout(place, 1200);
 
     var css =
-      '.sn-cback{position:absolute;left:0;width:100%;z-index:0;pointer-events:none;overflow:hidden}' +
+      // the section itself stops drawing; it only reserves the space now
+      '#Collective{mix-blend-mode:normal !important;background:transparent !important}' +
+      '#Collective [class*="overlay"]{background:transparent !important;mix-blend-mode:normal !important;visibility:hidden}' +
+      '#Collective [class*="about-bottom"]{background:transparent !important}' +
+      '#Collective [class*="about-image-tilt"]{display:none !important}' +
+
+      '.sn-cback{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;overflow:hidden;background:#0A0A0A}' +
       '.sn-cimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}' +
       '.sn-cveil{position:absolute;inset:0}' +
-      '.sn-cpanel{position:absolute;display:none}' +
-      '#Collective{z-index:3}';
+      '.sn-cfront{position:absolute;left:0;width:100%;z-index:5;pointer-events:none;' +
+      'display:flex;align-items:center}' +
+      '.sn-cinner{width:100%;padding:0 100px;box-sizing:border-box}' +
+      '.sn-ceyebrow{font:600 11px/1 "DM Sans",Arial,sans-serif;letter-spacing:.22em;' +
+      'text-transform:uppercase;color:#FF2A18;margin:0 0 14px}' +
+      '.sn-chead{font-family:Agdasima,"Arial Narrow",sans-serif;font-weight:700;' +
+      'text-transform:uppercase;font-size:clamp(44px,7vw,120px);line-height:.95;margin:0}' +
+      '.sn-clede{font-family:"DM Sans",Arial,sans-serif;font-size:clamp(16px,1.35vw,20px);' +
+      'line-height:1.55;margin:clamp(16px,1.6vw,28px) 0 0;max-width:46ch}' +
+      '@media(max-width:767px){.sn-cinner{padding:0 24px}.sn-clede{max-width:none}}';
 
-    if (coll === 'fix') {
-      // keep the knock-out headline, make the body copy solid and readable
+    if (coll === 'cutout') {
+      // the knock-out survives, but only on the headline. Body copy stays solid.
       css +=
-        '.sn-cveil{background:linear-gradient(to bottom,rgba(10,10,10,.25),rgba(10,10,10,.55))}' +
-        '.sn-cpanel{display:block;background:#0A0A0A}' +
-        '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
-        '{color:#0A0A0A !important;max-width:46ch}';
-    }
-
-    if (coll === 'full' || coll === 'split') {
-      // blend off, picture visible, copy set in white over a veil
+        '.sn-cveil{background:linear-gradient(to bottom,rgba(10,10,10,.15),rgba(10,10,10,.5))}' +
+        '.sn-chead{color:transparent;background-image:url(' + src + ');' +
+        'background-size:cover;background-position:center;-webkit-background-clip:text;' +
+        'background-clip:text;filter:contrast(1.25) brightness(1.2)}' +
+        '.sn-clede{color:#fff}';
+    } else if (coll === 'full') {
       css +=
-        '#Collective{mix-blend-mode:normal !important}' +
-        '#Collective [class*="overlay"]{background:transparent !important;mix-blend-mode:normal !important}' +
-        '#Collective [class*="about-bottom"]{background:transparent !important}' +
-        '#Collective [class*="about-image-tilt"]{display:none !important}' +
-        '#Collective [class*="cut-out-h3"]{color:#fff !important}' +
-        '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
-        '{color:rgba(255,255,255,.9) !important;max-width:46ch}' +
-        '#Collective .title-section{color:#FF2A18 !important}' +
-        // the copy sat in the top third of a 900px section, leaving dead space
-        '#Collective [class*="overlay"]{display:flex;flex-direction:column;justify-content:center}';
-      if (coll === 'full') {
-        css += '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.55) 60%,rgba(10,10,10,.4))}';
-      } else {
-        // picture on the right, copy on a solid field to the left
-        css +=
-          '.sn-cimg{left:auto;right:0;width:52%}' +
-          '.sn-cveil{background:linear-gradient(to right,#0A0A0A 44%,rgba(10,10,10,.75) 52%,rgba(10,10,10,0) 68%)}' +
-          '#Collective [class*="about-b2"],#Collective [class*="body-text"]{max-width:34ch}' +
-          '@media (max-width:767px){.sn-cimg{width:100%;right:0}' +
-          '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.6))}}';
-      }
+        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.92),rgba(10,10,10,.5) 60%,rgba(10,10,10,.35))}' +
+        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9)}';
+    } else if (coll === 'split') {
+      css +=
+        '.sn-cimg{left:auto;right:0;width:54%}' +
+        '.sn-cveil{background:linear-gradient(to right,#0A0A0A 42%,rgba(10,10,10,.8) 52%,rgba(10,10,10,0) 70%)}' +
+        '.sn-chead{color:#fff}.sn-clede{color:rgba(255,255,255,.9);max-width:32ch}' +
+        '@media(max-width:900px){.sn-cimg{width:100%}' +
+        '.sn-cveil{background:linear-gradient(to top,rgba(10,10,10,.93),rgba(10,10,10,.6))}' +
+        '.sn-clede{max-width:none}}';
     }
 
     var st = document.createElement('style');
