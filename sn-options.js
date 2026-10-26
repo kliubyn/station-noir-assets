@@ -9,14 +9,14 @@
     archivo: { label: 'Archivo Black',stack: "'Archivo Black', Arial, sans-serif",         g: 'Archivo+Black', scale: 0.75 },
     oswald:  { label: 'Oswald',       stack: "'Oswald', 'Arial Narrow', sans-serif",       g: 'Oswald:wght@400;600;700' }
   };
-  var COLLECTIVE = { 0:'Current', 1:'Cut-out', 2:'Image behind', 3:'Image behind + reveal' };
+  var COLLECTIVE = { off:'Current', behind:'Image behind', reveal:'Image behind + reveal' };
   var HERO = { off:'Current', full:'Full bleed', scrim:'Full bleed + scrim' };
 
   var P = {};
   try { new URLSearchParams(location.search).forEach(function (v, k) { P[k] = v; }); } catch (e) {}
 
   var font = FONTS[P.font] ? P.font : 'current';
-  var coll = (P.collective in COLLECTIVE) ? P.collective : '0';
+  var coll = COLLECTIVE[P.collective] ? P.collective : 'off';
   var hero = HERO[P.hero] ? P.hero : 'off';
   var showRail = ('opts' in P) || ('font' in P) || ('collective' in P) || ('hero' in P);
 
@@ -83,108 +83,80 @@
   }
 
   /* ---------------- collective ---------------- */
-  // How this section actually works: section.about-section-copy is
-  // mix-blend-mode:screen over a white div.overlay, and the heading is near
-  // black. Screen turns black transparent and keeps white white, so the dark
-  // letters knock a hole in the white and reveal whatever sits BEHIND the
-  // section. Two consequences drive everything below:
-  //   1. text must stay dark, white text disappears into the overlay
-  //   2. the image must live OUTSIDE the section, or it gets screened too
+  // Christina rebuilt this section, so the classes all carry a -copy suffix
+  // now (cut-out-h3-copy, about-bottom-copy, about-tilt-copy, overlay _1).
+  // Selectors below match either spelling so this keeps working if it is
+  // rebuilt again. The headline/paragraph split is already done in Webflow,
+  // so nothing here rewrites copy.
   function applyCollective() {
-    if (coll === '0') return;
+    if (coll === 'off') return;
     var sec = document.getElementById('Collective');
     if (!sec) return;
-    var head = sec.querySelector('.cut-out-h3') || sec.querySelector('h1,h2,h3,h4,h5,h6');
-    var img = sec.querySelector('img');
-    if (!head) return;
 
-    var ink = getComputedStyle(head).color || '#0A0A0A';
+    var head = sec.querySelector('[class*="cut-out-h3"]') ||
+               sec.querySelector('h1,h2,h3,h4,h5,h6');
+    var lede = sec.querySelector('[class*="about-b2"]') ||
+               sec.querySelector('[class*="body-text"]');
+    var img  = sec.querySelector('img[class*="about-tilt"]') || sec.querySelector('img');
+    var bottom = sec.querySelector('[class*="about-bottom"]');
+    var host = sec.parentElement;
+    if (!img || !host) return;
 
-    // the restructure Alex approved: short bold headline, body as a paragraph
-    if (!sec.querySelector('.sn-lede2')) {
-      var body = head.textContent.trim();
-      head.textContent = 'Who we are:';
-      var p = document.createElement('p');
-      p.className = 'sn-lede2';
-      p.textContent = body;
-      head.parentElement.insertBefore(p, head.nextSibling);
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+
+    if (!host.querySelector('.sn-bgimg')) {
+      var src = img.currentSrc || img.getAttribute('src') || '';
+      var clone = document.createElement('img');
+      clone.className = 'sn-bgimg';
+      clone.src = src;
+      var ss = img.getAttribute('srcset');
+      if (ss) clone.setAttribute('srcset', ss);
+      clone.setAttribute('aria-hidden', 'true');
+      host.insertBefore(clone, host.firstChild);
+
+      var veil = document.createElement('div');
+      veil.className = 'sn-collveil';
+      host.insertBefore(veil, clone.nextSibling);
+
+      // the section is not the host's only child, so pin both layers to its box
+      var bleed = (coll === 'reveal') ? 0.14 : 0;
+      function place() {
+        var h = sec.offsetHeight, t = sec.offsetTop;
+        clone.style.top = Math.round(t - h * bleed) + 'px';
+        clone.style.height = Math.round(h * (1 + bleed * 2)) + 'px';
+        veil.style.top = Math.round(t) + 'px';
+        veil.style.height = Math.round(h) + 'px';
+      }
+      place();
+      addEventListener('resize', place);
+      if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
+      setTimeout(place, 1200);
+
+      if (coll === 'reveal') {
+        addEventListener('scroll', function () {
+          var r = sec.getBoundingClientRect();
+          var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
+          clone.style.transform = 'translateY(' + (t * -7) + '%)';
+        }, { passive: true });
+      }
     }
 
     var css =
-      '#Collective .sn-lede2{font-family:"DM Sans",Arial,sans-serif;' +
-      'font-size:clamp(16px,1.45vw,21px);line-height:1.5;color:' + ink + ';' +
-      'max-width:52ch;margin:clamp(14px,1.6vw,26px) 0 0;font-weight:500}' +
-      '#Collective .cut-out-h3{font-size:clamp(44px,7vw,120px);line-height:.95}';
+      '.sn-bgimg{position:absolute;left:0;width:100%;object-fit:cover;' +
+      'z-index:0;pointer-events:none;display:block !important}' +
+      '.sn-collveil{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;' +
+      'background:linear-gradient(to right,rgba(10,10,10,.92),rgba(10,10,10,.62) 58%,rgba(10,10,10,.32))}' +
+      '#Collective{z-index:3;mix-blend-mode:normal !important}' +
+      // the white overlay and the white lower panel both hid the picture
+      '#Collective [class*="overlay"]{background:transparent !important;' +
+      'mix-blend-mode:normal !important}' +
+      '#Collective [class*="about-bottom"]{background:transparent !important}' +
+      '#Collective [class*="about-image-tilt"]{display:none !important}';
 
-    if (coll === '1' || coll === '2' || coll === '3') {
-      var host = sec.parentElement;
-      if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
-      if (img && host && !host.querySelector('.sn-bgimg')) {
-        var clone = img.cloneNode(true);
-        clone.className = 'sn-bgimg';
-        clone.removeAttribute('style');
-        img.style.visibility = 'hidden';
-        host.insertBefore(clone, host.firstChild);
-
-        // The section's nearest positioned ancestor is the whole landing page,
-        // so 100%/100% would stretch the image down the entire document.
-        // Measure the section and pin the image to exactly its box instead.
-        var bleed = (coll === '3') ? 0.14 : 0;
-        function place() {
-          var h = sec.offsetHeight;
-          clone.style.top = Math.round(sec.offsetTop - h * bleed) + 'px';
-          clone.style.height = Math.round(h * (1 + bleed * 2)) + 'px';
-        }
-        var veil = null;
-        if (coll === '2' || coll === '3') {
-          veil = document.createElement('div');
-          veil.className = 'sn-collveil';
-          host.insertBefore(veil, clone.nextSibling);
-        }
-        var place0 = place;
-        place = function () {
-          place0();
-          if (veil) {
-            veil.style.top = Math.round(sec.offsetTop) + 'px';
-            veil.style.height = Math.round(sec.offsetHeight) + 'px';
-          }
-        };
-        place();
-        addEventListener('resize', place);
-        if (window.ResizeObserver) { try { new ResizeObserver(place).observe(sec); } catch (e) {} }
-        setTimeout(place, 1200);          // after Webflow's own load animations settle
-
-        if (coll === '3') {
-          addEventListener('scroll', function () {
-            var r = sec.getBoundingClientRect();
-            var t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - innerHeight / 2) / innerHeight));
-            clone.style.transform = 'translateY(' + (t * -7) + '%)';
-          }, { passive: true });
-        }
-      }
-      css +=
-        '.sn-bgimg{position:absolute;left:0;width:100%;' +
-        'object-fit:cover;z-index:0;pointer-events:none}' +
-        '#Collective{z-index:3}';
-
-      if (coll === '2' || coll === '3') {
-        // Option 1 keeps the knock-out, where only the letters show picture.
-        // Alex asked to actually see the image, so here the screen blend and
-        // the white overlay come off and the copy flips to white over a veil.
-        css +=
-          '#Collective{mix-blend-mode:normal !important}' +
-          '#Collective .overlay{background:transparent !important;' +
-          'mix-blend-mode:normal !important}' +
-          // .about-bottom is a solid white panel over the lower two thirds of
-          // the section, which hid the picture everywhere except the text band
-          '#Collective .about-bottom{background:transparent !important}' +
-          '#Collective .about-image-tilt-wrapper{display:none !important}' +
-          '#Collective .cut-out-h3,#Collective .sn-lede2{color:#fff !important}' +
-          '#Collective .title-section{color:#FF2A18 !important}' +
-          '.sn-collveil{position:absolute;left:0;width:100%;z-index:1;pointer-events:none;' +
-          'background:linear-gradient(to right,rgba(10,10,10,.9),rgba(10,10,10,.6) 55%,rgba(10,10,10,.3))}';
-      }
-    }
+    if (head) css += '#Collective [class*="cut-out-h3"]{color:#fff !important}';
+    if (lede) css += '#Collective [class*="about-b2"],#Collective [class*="body-text"]' +
+                     '{color:rgba(255,255,255,.88) !important}';
+    css += '#Collective .title-section{color:#FF2A18 !important}';
 
     var st = document.createElement('style');
     st.textContent = css;
